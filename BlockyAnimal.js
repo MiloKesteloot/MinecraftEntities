@@ -86,9 +86,12 @@ function connectVariablesToGLSL() {
 }
 
 let fpsElement;
+let pauseButton;
+let paused = false;
 
 function setUpElements() {
     fpsElement = document.getElementById("fps");
+    pauseButton = document.getElementById("pauseButton");
     document.getElementById('neckYawAngleSlide').addEventListener('input', function() {g_neckYawAngle = -this.value;})
     document.getElementById('neckPitchAngleSlide').addEventListener('input', function() {g_neckPitchAngle = -this.value;})
     document.getElementById('thighAngleSlide').addEventListener('input', function() {g_thighAngle = -this.value;})
@@ -99,6 +102,15 @@ function setUpElements() {
     document.getElementById('footAngleSlide').addEventListener('input', function() {g_footAngle = -this.value;})
     document.getElementById('yawSlide').addEventListener('input', function() {g_globalYawAngle = -this.value;})
     document.getElementById('pitchSlide').addEventListener('input', function() {g_globalPitchAngle = -this.value;})
+}
+
+function pauseButtonClicked() {
+    paused = !paused;
+    if (paused) {
+        pauseButton.value = "Play Animation";
+    } else {
+        pauseButton.value = "Pause Animation";
+    }
 }
 
 let rscalls = 0;
@@ -204,10 +216,10 @@ function buildModel() {
 function tick() {
     requestAnimationFrame(tick);
 
-    g_seconds = performance.now()/1000.0-g_startTime
+    if (!paused) {
+        g_seconds = performance.now()/1000.0-g_startTime
+    }
     
-    
-
     renderScene();
 }
 
@@ -258,7 +270,6 @@ function updateFPS(now) {
     frameCount = 0;
     lastTime = now;
 
-    console.log(rscalls);
     rscalls = 0;
   }
 
