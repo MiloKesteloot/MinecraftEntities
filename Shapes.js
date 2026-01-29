@@ -1,4 +1,4 @@
-class Cube {
+class Shape {
     constructor(x, z, y, sx, sz, sy, px, pz, py, r, ax, az, ay) {
         this.type='cube';
         this.color = [0.2, 0.2, 0.2, 1];
@@ -91,6 +91,25 @@ class Cube {
         
         gl.uniformMatrix4fv(u_ModelMatrix, false, worldMatrix.elements);
 
+        this.subRender();
+
+        for (const key in this.children) {
+            this.children[key].render(this.getNonScaleMatrixTrain());
+        }
+    }
+
+    subRender() {
+        console.error("subRender() has not yet been set up yet on:");
+        console.error(this);
+    }
+
+    multColor(rgba, m) {
+        return [rgba[0]*m, rgba[1]*m, rgba[2]*m, rgba[3]];
+    }
+}
+
+class Cube extends Shape {
+    subRender() {
         let rgba = this.color;
         const col1 = rgba;
         const col2 = this.multColor(rgba, 0.85);
@@ -111,22 +130,20 @@ class Cube {
         Triangle3D.draw( [0,1,0,   0,1,1,   1,1,1], col4);
         Triangle3D.draw( [0,1,0,   1,1,1,   1,1,0], col4);
 
-        Triangle3D.draw( [1,1,1,   0,1,0,   0,1,1], col4);
-        Triangle3D.draw( [1,1,1,   1,1,0,   0,1,0], col4);
-
         Triangle3D.draw( [1,1,1,   1,0,0,   1,1,0], col5);
         Triangle3D.draw( [1,1,1,   1,0,1,   1,0,0], col5);
 
         Triangle3D.draw( [1,1,1,   0,0,1,   1,0,1], col6);
         Triangle3D.draw( [1,1,1,   0,1,1,   0,0,1], col6);
-
-        for (const key in this.children) {
-            this.children[key].render(this.getNonScaleMatrixTrain());
-        }
     }
+}
 
-    multColor(rgba, m) {
-        return [rgba[0]*m, rgba[1]*m, rgba[2]*m, rgba[3]];
+class Plane extends Shape {
+    subRender() {
+        let rgba = this.color;
+        const col4 = this.multColor(rgba, 0.55);
+        Triangle3D.draw( [0,0.5,0,   0,0.5,1,   1,0.5,1], col4);
+        Triangle3D.draw( [0,0.5,0,   1,0.5,1,   1,0.5,0], col4);
     }
 }
 

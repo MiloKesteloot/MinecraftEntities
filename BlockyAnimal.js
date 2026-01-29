@@ -146,7 +146,7 @@ let parts = {};
 
 function buildModel() {
     parts = {};
-    parts.body = new Cube(0, 0, 0, 64, 24, 24,          1000, 0, 0, "Math.sin(g_seconds*g_speed) * 1", 0, 1, 0);
+    parts.body = new Cube(0, 0, 0, 64, 24, 24,          1000, 0, 0, "Math.sin(g_seconds*g_speed - 1.9) * 0.2", 0, 1, 0);
     let tail = parts.body;
     for (let i = 0; i < 12; i++) {
         tail = tail.add(new Cube(37 + 10*i, 0, -2.5, 10, 10, 10,      37 + 10*i - 5, 0, -2.5, "Math.sin(g_seconds*g_speed + " + i/2 + ") * 2", 0, 1, 0));
@@ -181,8 +181,14 @@ function buildModel() {
         const foot = wrist.add(new Cube(18, 16 * n, -12, 4, 8, 16,         15, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 + 43", 0, 1, 0));
 
         const thigh = parts.body.add(new Cube(33, 16 * n, -3, 32, 16, 16,         25, 16 * n, -3, "(Math.sin(g_seconds*g_speed) + 0.3) * 1 - 30", 0, 1, 0));
-        const shin = thigh.add(new Cube(64, -16, -3, 32, 12, 12,         54, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 30", 0, 1, 0));
-        const backFoot = shin.add(new Cube(82, -16, -12, 6, 18, 24,         79, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 40", 0, 1, 0));
+        const shin = thigh.add(new Cube(64, 16 * n, -3, 32, 12, 12,         54, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 30", 0, 1, 0));
+        const backFoot = shin.add(new Cube(82, 16 * n, -12, 6, 18, 24,         79, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 40", 0, 1, 0));
+
+        // Wings!
+        const wingFrame1 = parts.body.add(new Cube(-20, 40 * n, 12, 8, 56, 8,      -20, 12*n, 12, "((Math.sin(g_seconds*g_speed + 2.2)) * 55 - 10) * " + n, 1, 0, 0).col(125, 125, 125, 255))
+        const wingFrame2 = wingFrame1.add(new Cube(-18, 96 * n, 12, 4, 56, 4,      -20, 68*n, 12, "((Math.sin(g_seconds*g_speed + 1)) * 45 + 30) * " + n, 1, 0, 0).col(125, 125, 125, 255))
+        wingFrame1.add(new Plane(12, 40 * n, 12, 56, 56, 1))
+        wingFrame2.add(new Plane(12, 96 * n, 12, 56, 56, 1))
     }
 }
 
