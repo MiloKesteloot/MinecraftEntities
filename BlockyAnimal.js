@@ -89,19 +89,16 @@ let fpsElement;
 
 function setUpElements() {
     fpsElement = document.getElementById("fps");
-    
-    document.getElementById('angleSlide').addEventListener('input', function() {g_globalAngle = this.value;})
+    document.getElementById('yawSlide').addEventListener('input', function() {g_globalYawAngle = this.value;})
+    document.getElementById('pitchSlide').addEventListener('input', function() {g_globalPitchAngle = this.value;})
 }
 
 let rscalls = 0;
 
+let animalModel;
+let animalAnim;
+
 function main() {
-
-    loadAnimal(animal);
-
-    console.log(animalModel);
-    console.log(animalAnim);
-
     setUpWebGL();
 
     connectVariablesToGLSL();
@@ -114,19 +111,6 @@ function main() {
 
     // Specify the color for clearing <canvas>
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    for (let i = 0; i < 20; i++) {
-        const cube = new Cube();
-        cube.color = [1, 0, 0, 1]
-        
-        cube.matrix.scale(0.2, 0.2, 0.2);
-        cube.matrix.translate(0, -Math.sqrt(3)/2, 0);
-        cube.matrix.rotate(55, -1, 0, 1);    
-        
-        g_points.push(cube);
-    }
-
-    renderScene();
 }
 
 function clearScreen() {
@@ -139,25 +123,21 @@ function renderScene() {
 
     clearScreen();
 
-    const globalRotMat = new Matrix4().translate(0, 0, 0.1).rotate(g_globalAngle, 0, 1, 0);
+    const globalRotMat = new Matrix4().translate(0, 0, 0.1).rotate(g_globalPitchAngle, 1, 0, 0).rotate(g_globalYawAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, globalRotMat.elements)
  
-    // let len = g_points.length;
-    // for (let i = 0; i < len; i++) {
-    //     let p = g_points[i];
-    //     p.render();
-    // }
-
-    drawObjAndChildren(enderDragon.bones, new Matrix4());
-
+    drawObjAndChildren(animalModel["minecraft:geometry"][0].bones, new Matrix4());
+    
 }
 
 let variable;
 
 function tick() {
+    requestAnimationFrame(tick);
+    if (!loadedModelAndAnim) return;
+    g_seconds = performance.now()/1000.0-g_startTime
     variable = getAnimationVariables();
     renderScene();
-    requestAnimationFrame(tick);
 }
 
 function drawObjAndChildren(obj, matrix) {
@@ -173,10 +153,11 @@ function drawObjAndChildren(obj, matrix) {
 
     let rotation = undefined;
 
-    // if (obj.name === "wing") {
-    //     rotation = [document.getElementById('wingSlide').value, 0, 0, 1];
-    //     // console.log(obj.pivot)
-    // }
+    let time = 4;
+
+    if (obj.rotation !== undefined) {
+        rotation = [eval(obj.rotation[0]), obj.rotation[1], obj.rotation[2], obj.rotation[3]];
+    }
 
     for (let c of cubes) {
         drawCubePart(c.size, c.origin, obj.pivot, rotation);
@@ -220,7 +201,10 @@ function sendTextToHTML(text, ID) {
 
 let g_points = [];
 let g_selectedColor = [1, 1, 1, 1];
-let g_globalAngle = 0;
+let g_globalYawAngle = -30;
+let g_globalPitchAngle = -30;
+let g_startTime = performance.now()/1000.0;
+let g_seconds = performance.now()/1000.0-g_startTime;
 
 function click(event) {
     console.error("Click event is not defined");
@@ -255,21 +239,22 @@ function updateFPS(now) {
 
 requestAnimationFrame(updateFPS);
 
-function loadAnimal(animal) {
-    animalModel = JSON.parse(loadFileContents(".mcpack/models/entity/" + animal + ".geo.json"))
-    animalAnim = JSON.parse(loadFileContents(".mcpack/animations/" + animal + ".animation.json"))
+let loadedModelAndAnim = false;
+
+loadAnimal("ender_dragon");
+
+async function loadAnimal(animal) {
+    animalModel = JSON.parse(await loadFileContents("./mcpack/models/entity/" + animal + ".geo.json"));
+    animalAnim = JSON.parse(await loadFileContents("./mcpack/animations/" + animal + ".animation.json"));
+    loadedModelAndAnim = true;
 }
 
 // Function from ChatGPT
 async function loadFileContents(file) {
-  const response = await fetch(file); // or .json, .glsl, etc.
-  const text = await response.text();
 
-  // code here waits until the file is loaded
-  console.log(text);
+    // console.log(file);
 
-  return text;
+    const response = await fetch(file); // or .json, .glsl, etc.
+    let text = await response.text();
+    return text;
 }
-
-let animalModel;
-let animalAnim;
