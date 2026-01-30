@@ -270,11 +270,20 @@ function buildModel() {
         ear.applyTexture(["top", "bottom"], [6, 256 - 6, 2, 6]);
         ear.applyTexture(["back"], [6, 256 - 6 + 2, 2, 4]);
 
-        const forearm = parts.body.add(new Cube(-16, 16 * n, -6, 24, 8, 8,         -24, 16 * n, -6, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 13 + " + g_forearmAngle, 0, 1, 0));
-        const wrist = forearm.add(new Cube(5, 16 * n, -7, 24, 6, 6,         -4, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 30 + " + g_wristAngle, 0, 1, 0));
-        const foot = wrist.add(new Cube(18, 16 * n, -12, 4, 8, 16,         15, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 + 43 + " + g_footAngle, 0, 1, 0));
+        const forearm = parts.body.add(new Cube(-16, 12 * n, -6, 24, 8, 8,         -24, 16 * n, -6, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 13 + " + g_forearmAngle, 0, 1, 0));
+        forearm.applyTexture(["top", "bottom", "left", "right"], [14*8, 15*8, 1*8, 3*8])
+        forearm.applyTexture(["front", "back"], [15*8, 18*8, 1*8, 1*8])
+        const wrist = forearm.add(new Cube(5, 12 * n, -7, 24, 6, 6,         -4, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 30 + " + g_wristAngle, 0, 1, 0));
+        wrist.applyTexture(["top", "bottom", "left", "right"], [255-8*4+3, 11*8, 6, 24])
+        wrist.applyTexture(["front", "back"], [255-8*4+3 + 6, 14*8, 6, 6])
+        const foot = wrist.add(new Cube(18, 12 * n, -12, 4, 8, 16,         15, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 + 43 + " + g_footAngle, 0, 1, 0));
+        foot.applyTexture(["front", "back"], [20*8, 16*8+8, 8, 16])
+        foot.applyTexture("bottom", [20*8, 16*8+4, 8, 4])
+        foot.applyTexture("top", [21*8, 16*8+4, 8, 4])
+        foot.applyTexture(["left", "right"], [18*8, 16*8+4, 16, 4])
 
         const thigh = parts.body.add(new Cube(33, 16 * n, -3, 32, 16, 16,         25, 16 * n, -3, "(Math.sin(g_seconds*g_speed) + 0.3) * 1 - 30 + " + g_thighAngle, 0, 1, 0));
+        
         const shin = thigh.add(new Cube(64, 16 * n, -3, 32, 12, 12,         54, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 30 + " + g_calfAngle, 0, 1, 0));
         const backFoot = shin.add(new Cube(82, 16 * n, -12, 6, 18, 24,         79, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 40 + " + g_backFootAngle, 0, 1, 0));
 
