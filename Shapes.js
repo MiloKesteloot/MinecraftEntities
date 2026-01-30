@@ -116,13 +116,13 @@ class Shape {
         return [rgba[0]*m, rgba[1]*m, rgba[2]*m, rgba[3]];
     }
 
-    applyTexture(faces, uv) {
+    applyTexture(faces, uv, rotations) {
         // [x1, y1, x2, y2]
 
         let x1 = uv[0]/image.width;
         let y1 = uv[1]/image.height;
-        let x2 = uv[2]/image.width;
-        let y2 = uv[3]/image.height;
+        let x2 = (uv[0]+uv[2])/image.width;
+        let y2 = (uv[1]+uv[3])/image.height;
 
         const m = 0.001;
         if (x1 < x2) {
@@ -140,7 +140,24 @@ class Shape {
             y2 += m;
         }
 
-        uv = [x1, y1,   x2, y2,   x2, y1,    x1, y1,   x1, y2,   x2, y2];
+        let x1y1 = [x1, y1];
+        let x2y1 = [x2, y1];
+        let x1y2 = [x1, y2];
+        let x2y2 = [x2, y2];
+
+        function rotate() {
+            let x1y1s = x1y1;
+            x1y1 = x2y1;
+            x2y1 = x2y2;
+            x2y2 = x1y2;
+            x1y2 = x1y1s;
+        }
+
+        for (let i = 0; i < rotations; i++) {
+            rotate();
+        }
+
+        uv = [...x1y1,   ...x2y2,   ...x2y1,    ...x1y1,   ...x1y2,   ...x2y2];
 
         this.useTexture = true;
         if (faces === "all") {
