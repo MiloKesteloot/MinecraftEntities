@@ -176,8 +176,9 @@ function main() {
     canvas.onwheel = scroll;
 
     // Specify the color for clearing <canvas>
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    // gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0, 0, 0, 1);
+    // gl.clearColor(20/255, 16/255, 20/255, 1.0);
 
     buildModel();
 
