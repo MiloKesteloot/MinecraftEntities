@@ -1,9 +1,10 @@
 body {
     display: flex;
     margin: 0;
+    flex-wrap: wrap;
 }
 
 canvas {
-    height: 100vh;
+    height: 100vmin;
     aspect-ratio: 1;
 }

@@ -8,16 +8,34 @@ let VSHADER_SOURCE = `
 attribute vec4 a_Position;
 uniform mat4 u_ModelMatrix;
 uniform mat4 u_GloabalRotateMatrix;
+
+attribute vec2 a_TexCoord;
+varying vec2 v_TexCoord;
 void main() {
-  gl_Position = u_GloabalRotateMatrix * u_ModelMatrix * a_Position;
+    gl_Position = u_GloabalRotateMatrix * u_ModelMatrix * a_Position;
+    v_TexCoord = a_TexCoord;
 }`;
 
+// TODO Remove if for using texture vs color once they all use texture
 // Fragment shader program
 let FSHADER_SOURCE =`
 precision mediump float;
 uniform vec4 u_FragColor;
+uniform sampler2D u_Sampler;
+uniform int u_UseTexture;
+varying vec2 v_TexCoord;
 void main() {
-  gl_FragColor = u_FragColor;
+    vec4 color;
+    if (u_UseTexture == 1) {
+        vec4 texColor = texture2D(u_Sampler, v_TexCoord);
+        color = texColor * u_FragColor;
+        if (color.a < 0.1) {
+            discard;
+        }
+    } else {
+        color = u_FragColor;
+    }
+    gl_FragColor = color;
 }
 `;
 
@@ -39,12 +57,32 @@ function setUpWebGL() {
         return;
     }
 
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
     gl.enable(gl.DEPTH_TEST);
-
-    // CubeMesh.init();
-
-    tick();
 }
+
+function getAttribLocation(program, name) {
+    let attrib = gl.getAttribLocation(program, name);
+    if (attrib < 0) {
+        console.error('Failed to get the storage location of ' + name);
+        return null;
+    }
+    return attrib;
+}
+
+function getUniformLocation(program, name) {
+    let uniform = gl.getUniformLocation(program, name);
+    if (!uniform) {
+        console.error('Failed to get the storage location of ' + name);
+        return null;
+    }
+    return uniform;
+}
+
+let texture;
+let image;
 
 function connectVariablesToGLSL() {
     // Initialize shaders
@@ -53,36 +91,42 @@ function connectVariablesToGLSL() {
         return;
     }
 
-    // // Get the storage location of a_Position
-    a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-    if (a_Position < 0) {
-        console.error('Failed to get the storage location of a_Position');
-        return;
-    }
+    a_Position = getAttribLocation(gl.program, 'a_Position');
+    a_TexCoord = getAttribLocation(gl.program, 'a_TexCoord');
 
-    // Get the storage location of u_FragColor
-    u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
-    if (!u_FragColor) {
-        console.error('Failed to get the storage location of u_FragColor');
-        return;
-    }
 
-    // Get the storage location of u_ModelMatrix
-    u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
-    if (!u_FragColor) {
-        console.error('Failed to get the storage location of u_ModelMatrix');
-        return;
-    }
-
-    u_GloabalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GloabalRotateMatrix');
-    if (!u_GloabalRotateMatrix) {
-        console.error('Failed to get the storage location of u_GloabalRotateMatrix');
-        return;
-    }
+    u_FragColor = getUniformLocation(gl.program, 'u_FragColor');
+    u_ModelMatrix = getUniformLocation(gl.program, 'u_ModelMatrix');
+    u_GloabalRotateMatrix = getUniformLocation(gl.program, 'u_GloabalRotateMatrix');
+    u_Sampler = getUniformLocation(gl.program, 'u_Sampler');
+    u_UseTexture = getUniformLocation(gl.program, 'u_UseTexture');
 
     let identityM = new Matrix4();
     gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
-    gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, identityM.elements);    
+    gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, identityM.elements);
+
+    texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    image = new Image();
+    
+    image.onload = () => {
+        // Flip the image's y axis
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        
+        // Set texture parameters
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        
+        // Upload the image into the texture
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    };
+
+    image.src = './mcpack/textures/entity/dragon/dragon.png';
+    // image.src = './test.png';
+
 }
 
 let fpsElement;
@@ -133,14 +177,15 @@ function main() {
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
     buildModel();
+
+    tick();
 }
 
 function clearScreen() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
-function renderScene() {
-
+function renderScene() {    
     rscalls++;
 
     clearScreen();
@@ -149,8 +194,33 @@ function renderScene() {
     const globalRotMat = new Matrix4().scale(scale, scale, scale).rotate(g_globalPitchAngle, 1, 0, 0).rotate(g_globalYawAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, globalRotMat.elements)
  
-    // parts = {};
-    // parts.body = new Cube(0, 0, 0, 64, 24, 24,           0, 0, 0, "(Math.sin(g_seconds*2)+1) * 45", 0, 1, 0).col(255, 0, 0, 255);
+    parts = {};
+    // parts.body = new Cube(0, 0, 0, 100, 100, 100).col(255, 0, 0, 255);
+    // parts.body.applyTexture(
+    //     "top",
+    //     [0, 0, 512, 512]
+    // );
+    // parts.body.applyTexture(
+    //     "bottom",
+    //     [0, 0, 512, 512]
+    // );
+    // parts.body.applyTexture(
+    //     "front",
+    //     [0, 0, 512, 512]
+    // );
+    // parts.body.applyTexture(
+    //     "back",
+    //     [0, 0, 512, 512]
+    // );
+    // parts.body.applyTexture(
+    //     "left",
+    //     [0, 0, 512, 512]
+    // );
+    // parts.body.applyTexture(
+    //     "right",
+    //     [0, 0, 512, 512]
+    // );
+
     // parts.body.add(new Cube(0, 0, 40, 20, 40, 20,           0, 0, 40, "(Math.sin(g_seconds*2)+1) * -45", 1, 0, 0).col(0, 255, 0, 255));
     // parts.body.children[0].add(new Cube(0, 0, 40, 40, 20, 20).col(0, 0, 255, 255));
 
@@ -180,8 +250,10 @@ function buildModel() {
     }
 
     const head = neck.add(new Cube(-90, 0, -2.5, 16, 16, 16,       -90, 0, -2.5, "(Math.sin(g_seconds*g_speed - 1) - 0.3) * 7", 0, 1, 0));
+    head.applyTexture("front", [17*8, 25*8+2, 19*8, 27*8]);
     head.add(new Cube(-106, 0, -4, 16, 12, 5)) // nose
     head.add(new Cube(-106, 0, -8.5, 16, 12, 4,          -98, 0, -8.5, "(Math.sin(g_seconds*g_speed)+1) * 8", 0, 1, 0)) // jaw
+
 
     // Mirrored things
     for (let i = 0; i < 2; i++) {
@@ -191,11 +263,11 @@ function buildModel() {
         head.add(new Cube(-90, 4 * n, 7.5, 6, 2, 4).col(125, 125, 125, 255)) // ear
 
         // Eye
-        const flat = 0.01;
-        head.add(new Cube(-98 - flat, 4.5 * n, 1, flat, 3, 1).col(224, 121, 250, 255))
-        head.add(new Cube(-98 - flat, 4 * n, 0, flat, 4, 1).col(224, 121, 250, 255))
-        head.add(new Cube(-98 - flat*2, 4.5 * n, 1, flat, 1, 1).col(204, 0, 250, 255))
-        head.add(new Cube(-98 - flat*2, 4 * n, 0, flat, 2, 1).col(204, 0, 250, 255))
+        // const flat = 0.01;
+        // head.add(new Cube(-98 - flat, 4.5 * n, 1, flat, 3, 1).col(224, 121, 250, 255))
+        // head.add(new Cube(-98 - flat, 4 * n, 0, flat, 4, 1).col(224, 121, 250, 255))
+        // head.add(new Cube(-98 - flat*2, 4.5 * n, 1, flat, 1, 1).col(204, 0, 250, 255))
+        // head.add(new Cube(-98 - flat*2, 4 * n, 0, flat, 2, 1).col(204, 0, 250, 255))
 
         const forearm = parts.body.add(new Cube(-16, 16 * n, -6, 24, 8, 8,         -24, 16 * n, -6, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 13 + " + g_forearmAngle, 0, 1, 0));
         const wrist = forearm.add(new Cube(5, 16 * n, -7, 24, 6, 6,         -4, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 30 + " + g_wristAngle, 0, 1, 0));
@@ -208,8 +280,21 @@ function buildModel() {
         // Wings!
         const wingFrame1 = parts.body.add(new Cube(-20, 40 * n, 12, 8, 56, 8,      -20, 12*n, 12, "((Math.sin(g_seconds*g_speed + 2.2)) * 55 - 10) * " + n, 1, 0, 0).col(125, 125, 125, 255))
         const wingFrame2 = wingFrame1.add(new Cube(-18, 96 * n, 12, 4, 56, 4,      -20, 68*n, 12, "((Math.sin(g_seconds*g_speed + 1)) * 45 + 30) * " + n, 1, 0, 0).col(125, 125, 125, 255))
-        wingFrame1.add(new Plane(12, 40 * n, 12, 56, 56, 1))
-        wingFrame2.add(new Plane(12, 96 * n, 12, 56, 56, 1))
+        
+        const flapClose = wingFrame1.add(new Plane(12, 40 * n, 12, 56, 56, 1));
+        flapClose.transparent = true;
+        if (n === 1) {
+            flapClose.applyTexture("top", [0, 14*8, 7*8, 21*8]);
+        } else {
+            flapClose.applyTexture("top", [7*8, 14*8, 0, 21*8]);
+        }
+        const flapFar = wingFrame2.add(new Plane(12, 96 * n, 12, 56, 56, 1));
+        flapFar.transparent = true;
+        if (n === 1) {
+            flapFar.applyTexture("top", [0, 7*8, 7*8, 14*8]);
+        } else {
+            flapFar.applyTexture("top", [7*8, 7*8, 0, 14*8]);
+        }
     }
 }
 

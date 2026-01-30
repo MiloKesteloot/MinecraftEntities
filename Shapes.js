@@ -12,6 +12,10 @@ class Shape {
         this.pivot = [px, py, pz];
         this.rotation = [r, ax, ay, az];
 
+        this.uvCoords = {};
+
+        this.transparent = false;
+
         this.buildMatrix();
     }
 
@@ -78,8 +82,7 @@ class Shape {
         return this;
     }
 
-    render(parentMatrix = null) {
-        
+    getWorldMatrix(parentMatrix = null) {
         let worldMatrix = new Matrix4();
 
         if (parentMatrix) {
@@ -88,10 +91,16 @@ class Shape {
         } else {
             worldMatrix.set(this.matrix);
         }
-        
+
+        return worldMatrix;
+    }
+
+    render(parentMatrix = null) {
+        const worldMatrix = this.getWorldMatrix(parentMatrix);
+
         gl.uniformMatrix4fv(u_ModelMatrix, false, worldMatrix.elements);
 
-        this.subRender();
+        this.subRender(new Matrix4(worldMatrix));
 
         for (const key in this.children) {
             this.children[key].render(this.getNonScaleMatrixTrain());
@@ -106,10 +115,47 @@ class Shape {
     multColor(rgba, m) {
         return [rgba[0]*m, rgba[1]*m, rgba[2]*m, rgba[3]];
     }
+
+    applyTexture(faces, uv) {
+        // [x1, y1, x2, y2]
+
+        let x1 = uv[0]/image.width;
+        let y1 = uv[1]/image.height;
+        let x2 = uv[2]/image.width;
+        let y2 = uv[3]/image.height;
+
+        const m = 0.001;
+        if (x1 < x2) {
+            x1 += m;
+            x2 -= m;
+        } else {
+            x1 -= m;
+            x2 += m;
+        }
+        if (y1 < y2) {
+            y1 += m;
+            y2 -= m;
+        } else {
+            y1 -= m;
+            y2 += m;
+        }
+
+        uv = [x1, y1,   x2, y2,   x2, y1,    x1, y1,   x1, y2,   x2, y2];
+
+        this.useTexture = true;
+        if (faces === "all") {
+            faces = ["top", "bottom", "right", "left", "front", "back"];
+        }
+        if (!Array.isArray(faces)) faces = [faces];
+        for (let f of faces) {
+            this.uvCoords[f] = uv;
+        }
+        return this;
+    }
 }
 
 class Cube extends Shape {
-    subRender() {
+    subRender(worldMatrix) {
         let rgba = this.color;
         const col1 = rgba;
         const col2 = this.multColor(rgba, 0.85);
@@ -118,23 +164,37 @@ class Cube extends Shape {
         const col5 = this.multColor(rgba, 0.4);
         const col6 = this.multColor(rgba, 0.35);
 
-        Triangle3D.draw( [0,0,0,   1,1,0,   1,0,0], col1);
-        Triangle3D.draw( [0,0,0,   0,1,0,   1,1,0], col1);
+        const uv = this.uvCoords;
 
-        Triangle3D.draw( [0,0,0,   0,1,1,   0,1,0], col2);
-        Triangle3D.draw( [0,0,0,   0,0,1,   0,1,1], col2);
+        // Top
+        Cube.drawFace(col1, uv.top, worldMatrix, []);
+        // Bottom
+        Cube.drawFace(col2, uv.bottom, worldMatrix, [[180, 0, 0, 1], [180, 0, 1, 0]]);
+        // Front
+        Cube.drawFace(col3, uv.front, worldMatrix, [[90, 0, 0, 1]]);
+        // Back
+        Cube.drawFace(col4, uv.back, worldMatrix, [[-90, 0, 0, 1], [180, 0, 1, 0]]);
+        // Right
+        Cube.drawFace(col5, uv.right, worldMatrix, [[90, 1, 0, 0]]);
+        // Left
+        Cube.drawFace(col6, uv.left, worldMatrix, [[-90, 1, 0, 0]]);
+    }
 
-        Triangle3D.draw( [0,0,0,   1,0,1,   0,0,1], col3);
-        Triangle3D.draw( [0,0,0,   1,0,0,   1,0,1], col3);
 
-        Triangle3D.draw( [0,1,0,   0,1,1,   1,1,1], col4);
-        Triangle3D.draw( [0,1,0,   1,1,1,   1,1,0], col4);
+    static drawFace(col, uv, m, rotations) {
 
-        Triangle3D.draw( [1,1,1,   1,0,0,   1,1,0], col5);
-        Triangle3D.draw( [1,1,1,   1,0,1,   1,0,0], col5);
+        m = new Matrix4(m);
 
-        Triangle3D.draw( [1,1,1,   0,0,1,   1,0,1], col6);
-        Triangle3D.draw( [1,1,1,   0,1,1,   0,0,1], col6);
+        for (let r of rotations) {
+            m.rotate(r[0], r[1], r[2], r[3]);
+        }
+
+        gl.uniformMatrix4fv(u_ModelMatrix, false, m.elements);
+
+        // Default is top
+        Triangle3D.draw([0,1,1, 1,1,0, 0,1,0], col, uv ? uv.slice(0,6) : null);
+        Triangle3D.draw([0,1,1, 1,1,1, 1,1,0], col, uv ? uv.slice(6,12) : null);
+
     }
 }
 
@@ -142,8 +202,8 @@ class Plane extends Shape {
     subRender() {
         let rgba = this.color;
         const col4 = this.multColor(rgba, 0.55);
-        Triangle3D.draw( [0,0.5,0,   0,0.5,1,   1,0.5,1], col4);
-        Triangle3D.draw( [0,0.5,0,   1,0.5,1,   1,0.5,0], col4);
+        Triangle3D.draw([0,0.5,1, 1,0.5,0, 0,0.5,0], col4, this.uvCoords.top ? this.uvCoords.top.slice(0,6) : null);
+        Triangle3D.draw([0,0.5,1, 1,0.5,1, 1,0.5,0], col4, this.uvCoords.top ? this.uvCoords.top.slice(6,12) : null);
     }
 }
 
@@ -156,12 +216,20 @@ class Triangle3D {
 
     // Claude gave me the idea for this reused vertex buffer
     static vertexBuffer = null;
+    static uvBuffer = null;
+
     static initBuffer() {
-        if (Triangle3D.vertexBuffer) return true;
+        if (Triangle3D.vertexBuffer && Triangle3D.uvBuffer) return true;
 
         Triangle3D.vertexBuffer = gl.createBuffer();
         if (!Triangle3D.vertexBuffer) {
             console.error('Failed to create the buffer object');
+            return false;
+        }
+
+        Triangle3D.uvBuffer = gl.createBuffer();
+        if (!Triangle3D.uvBuffer) {
+            console.error('Failed to create the UV buffer object');
             return false;
         }
         
@@ -172,9 +240,33 @@ class Triangle3D {
         Triangle3D.draw(this.corners, this.color);
     }
 
-    static draw(corners, color = [1, 0.5, 1, 1]) {
+    static draw(corners, color, uvCoords = null) {
 
         if (!Triangle3D.initBuffer()) return;
+
+        // uvCoords = [0, 0, 1, 1, 0, 1];
+        const m = 1;
+        // uvCoords = [0, 0, 0, m, m, m];
+
+        if (uvCoords !== null) {
+
+            color = [1, 1, 1, 1];
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.uniform1i(u_Sampler, 0);
+            
+            // Bind and set UV data
+            gl.bindBuffer(gl.ARRAY_BUFFER, Triangle3D.uvBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvCoords), gl.DYNAMIC_DRAW);
+            gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(a_TexCoord);
+            
+            // Tell shader to use texture
+            gl.uniform1i(u_UseTexture, 1);
+        } else {
+            gl.uniform1i(u_UseTexture, 0);
+        }
 
         corners = corners.map(x => x - 0.5);
 
