@@ -124,7 +124,7 @@ class Shape {
         let x2 = (uv[0]+uv[2])/image.width;
         let y2 = (uv[1]+uv[3])/image.height;
 
-        const m = 0.001;
+        const m = 0.0004;
         if (x1 < x2) {
             x1 += m;
             x2 -= m;

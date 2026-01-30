@@ -214,6 +214,13 @@ function buildModel() {
     parts.body.applyTexture("bottom", [11*8, 24*8, 3*8, 8*8]);
     parts.body.applyTexture(["left", "right"], [11*8, 21*8, 8*8, 3*8], 1);
     parts.body.applyTexture(["front", "back"], [8*8, 21*8, 8*3, 3*8]);
+    for (let i = 0; i < 3; i++) {
+        const blade = parts.body.add(new Cube(-20 + 20*i, 0, 15, 12, 2, 6));
+        blade.applyTexture(["left", "right"], [256 - 5*8 + 4, 256 - 9*8 + 1 + 6, 12, -6], 1)
+        blade.applyTexture(["front"], [256 - 5*8 + 4 + 12, 256 - 9*8 + 1, 2, 6])
+        blade.applyTexture(["back"], [256 - 5*8 + 4 + 12 + 14, 256 - 9*8 + 1, 2, 6])
+        blade.applyTexture(["top", "bottom"], [256 - 5*8 + 4 + 12, 256 - 9*8 + 1 + 6, 2, 12])
+    }
     let tail = parts.body;
     for (let i = 0; i < 12; i++) {
         tail = tail.add(new Cube(37 + 10*i, 0, -2.5, 10, 10, 10,      37 + 10*i - 5, 0, -2.5, "Math.sin(g_seconds*g_speed + " + i/2 + ") * 2", 0, 1, 0));
@@ -274,18 +281,26 @@ function buildModel() {
         forearm.applyTexture(["top", "bottom", "left", "right"], [14*8, 15*8, 1*8, 3*8])
         forearm.applyTexture(["front", "back"], [15*8, 18*8, 1*8, 1*8])
         const wrist = forearm.add(new Cube(5, 12 * n, -7, 24, 6, 6,         -4, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 - 30 + " + g_wristAngle, 0, 1, 0));
-        wrist.applyTexture(["top", "bottom", "left", "right"], [255-8*4+3, 11*8, 6, 24])
-        wrist.applyTexture(["front", "back"], [255-8*4+3 + 6, 14*8, 6, 6])
+        wrist.applyTexture(["top", "bottom", "left", "right"], [256-8*4+2, 11*8, 6, 24])
+        wrist.applyTexture(["front", "back"], [256-8*4+2 + 6, 14*8, 6, 6])
         const foot = wrist.add(new Cube(18, 12 * n, -12, 4, 8, 16,         15, 16 * n, -7, "(Math.sin(g_seconds*g_speed) - 0.3) * 1 + 43 + " + g_footAngle, 0, 1, 0));
         foot.applyTexture(["front", "back"], [20*8, 16*8+8, 8, 16])
-        foot.applyTexture("bottom", [20*8, 16*8+4, 8, 4])
+        foot.applyTexture("bottom", [20*8, 16*8+4+4, 8, -4])
         foot.applyTexture("top", [21*8, 16*8+4, 8, 4])
         foot.applyTexture(["left", "right"], [18*8, 16*8+4, 16, 4])
 
         const thigh = parts.body.add(new Cube(33, 16 * n, -3, 32, 16, 16,         25, 16 * n, -3, "(Math.sin(g_seconds*g_speed) + 0.3) * 1 - 30 + " + g_thighAngle, 0, 1, 0));
-        
+        thigh.applyTexture(["front", "back"], [8*2, 256-16, 16, 16]);
+        thigh.applyTexture(["top", "bottom", "left", "right"], [8*2, 256-16-32, 16, 32]);
         const shin = thigh.add(new Cube(64, 16 * n, -3, 32, 12, 12,         54, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 30 + " + g_calfAngle, 0, 1, 0));
+        shin.applyTexture(["front", "back"], [256 - 6*8, 256 - 12, 12, 12])
+        shin.applyTexture(["top", "bottom", "left", "right"], [256 - 6*8, 256 - 12 - 32, 12, 32])
         const backFoot = shin.add(new Cube(82, 16 * n, -12, 6, 18, 24,         79, 16 * n, -3, "(Math.sin(g_seconds*g_speed + 2)) * 1 + 40 + " + g_backFootAngle, 0, 1, 0));
+        backFoot.applyTexture(["front"], [17*8, 256-8*3, 18, 24]);
+        backFoot.applyTexture(["back"], [17*8 + 18, 256-8*3, 18, 24]);
+        backFoot.applyTexture(["bottom"], [17*8, 256-8*3, 18, -6]);
+        backFoot.applyTexture(["top"], [17*8 + 18 + 24, 256-8*3, 18, -6]);
+        backFoot.applyTexture(["left", "right"], [17*8 + 18, 256-8*3, 18, -6]);
 
         // Wings!
         const wingFrame1 = parts.body.add(new Cube(-20, 40 * n, 12, 8, 56, 8,      -20, 12*n, 12, "((Math.sin(g_seconds*g_speed + 2.2)) * 55 - 10) * " + n, 1, 0, 0).col(125, 125, 125, 255))
