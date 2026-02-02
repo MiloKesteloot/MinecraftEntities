@@ -184,6 +184,7 @@ function main() {
     // gl.clearColor(20/255, 16/255, 20/255, 1.0);
 
     buildModel();
+    createParticles()
 
     tick();
 }
@@ -202,14 +203,69 @@ function renderScene() {
     gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, globalRotMat.elements)
  
     buildModel();
+    if (drawParts) drawParticles();
 
     for (const key in parts) {
         parts[key].render();
+    }
+
+    if (drawParts) {
+        for (const particle of particles) {
+            particle.render();
+        }
     }
 }
 
 let variable;
 let parts = {};
+let particles = [];
+let drawParts = true;
+let particleXBounds = 1000;
+let particleYBounds = 300;
+let particleZBounds = 300;
+
+function toggleParticles() {
+    drawParts = !drawParts;
+}
+
+function createParticles() {
+
+    function rnd(b) {
+        return (Math.random()-0.5)*b*2;
+    }
+
+    for (let i = 0; i < 200; i++) {
+        particles.push([rnd(particleXBounds), rnd(particleYBounds), rnd(particleZBounds)]);
+    }
+}
+
+function drawParticles() {
+
+    function mapSpace(v, l) {
+        if (v < -l) {
+            return l;
+        }
+        if (v > l) {
+            return -l;
+        }
+        return v;
+    }
+
+    for (let i = 0; i < particles.length; i++) {
+        let particle = particles[i];
+
+        particle[0] += 3 * (1-diveAmount);
+        particle[2] += 10 * diveAmount;
+
+        particle[0] = mapSpace(particle[0], particleXBounds);
+        particle[1] = mapSpace(particle[1], particleYBounds);
+        particle[2] = mapSpace(particle[2], particleZBounds);
+
+        const part = new Cube(...particle, 3, 3, 3).col(255, 0, 0, 255);
+        part.applyTexture("all", [0, 0, 5, 5]);
+        parts["particle"+i] = part;
+    }
+}
 
 function buildModel() {
     parts = {};

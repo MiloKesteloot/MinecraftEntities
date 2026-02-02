@@ -224,6 +224,12 @@ class Plane extends Shape {
     }
 }
 
+class Particle extends Plane {
+    subRender() {
+        super.subRender();
+    }
+}
+
 class Triangle3D {
     constructor(corners, rgb = [1, 0.5, 0.5, 1]) {
         this.type = "triangle";
