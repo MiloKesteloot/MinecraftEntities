@@ -150,7 +150,7 @@ function setUpElements() {
     document.getElementById('wristAngleSlide').addEventListener('input', function() {g_wristAngle = -this.value;})
     document.getElementById('footAngleSlide').addEventListener('input', function() {g_footAngle = -this.value;})
     document.getElementById('yawSlide').addEventListener('input', function() {g_globalYawAngle = -this.value;})
-    document.getElementById('pitchSlide').addEventListener('input', function() {g_globalPitchAngle = -this.value + 180;})
+    document.getElementById('pitchSlide').addEventListener('input', function() {g_globalPitchAngle = -this.value;})
     document.getElementById('colorPicker').addEventListener('input', function() {
         const hex = this.value;
         const r = parseInt(hex.slice(1, 3), 16);
@@ -206,19 +206,33 @@ function renderScene() {
 
     clearScreen();
 
-    const near = -5000;
-    const far = 5000;
+    // const near = -5000;
+    // const far = 5000;
+    // const aspectRatio = canvas.width / canvas.height;
+    // const viewSize = 2;
+    // const projectionMatrix = new Matrix4().setOrtho(
+    //     -viewSize * aspectRatio, viewSize * aspectRatio,
+    //     viewSize, -viewSize,  // Swapped! (was -viewSize, viewSize)
+    //     near, far
+    // );
     const aspectRatio = canvas.width / canvas.height;
-    const viewSize = 2;
-    const projectionMatrix = new Matrix4().setOrtho(
-        -viewSize * aspectRatio, viewSize * aspectRatio,
-        viewSize, -viewSize,  // Swapped! (was -viewSize, viewSize)
-        near, far
+    const projectionMatrix = new Matrix4().setPerspective(
+        60,
+        aspectRatio,
+        0.1,
+        10000
     );
     gl.uniformMatrix4fv(u_ProjectionMatrix, false, projectionMatrix.elements);
 
-    const scale = 1/160 * g_globalScale;  // Your original line
-    const globalRotMat = new Matrix4().scale(scale, scale, scale).rotate(g_globalPitchAngle, 1, 0, 0).rotate(g_globalYawAngle, 0, 1, 0);
+    const scale = 1/160 * g_globalScale;
+    const globalRotMat = new Matrix4()
+        .translate(0, 0, -5)
+        .scale(scale, scale, scale)
+        .rotate(g_globalPitchAngle, 1, 0, 0)
+        .rotate(g_globalYawAngle, 0, 1, 0);
+
+    // const scale = 1/160 * g_globalScale;  // Your original line
+    // const globalRotMat = new Matrix4().scale(scale, scale, scale).rotate(g_globalPitchAngle, 1, 0, 0).rotate(g_globalYawAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GloabalRotateMatrix, false, globalRotMat.elements)
 
     // const scale = 1/160 * g_globalScale;
@@ -237,9 +251,9 @@ let variable;
 let parts = {};
 let particles = [];
 let drawParts = true;
-let particleXBounds = 1000;
-let particleYBounds = 300;
-let particleZBounds = 300;
+let particleXBounds = 2000;
+let particleYBounds = 1000;
+let particleZBounds = 500;
 
 function toggleParticles() {
     drawParts = !drawParts;
@@ -251,7 +265,7 @@ function createParticles() {
         return (Math.random()-0.5)*b*2;
     }
 
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 600; i++) {
         particles.push([rnd(particleXBounds), rnd(particleYBounds), rnd(particleZBounds), Math.floor(Math.random()*4)]);
     }
 }
@@ -278,7 +292,7 @@ function drawParticles() {
         particle[1] = mapSpace(particle[1], particleYBounds);
         particle[2] = mapSpace(particle[2], particleZBounds);
 
-        const part = new Plane(particle[0], particle[1], particle[2], 5, 5, 5).col(255, 0, 0, 255);
+        const part = new Plane(particle[0] + particleXBounds * (3/4), particle[1], particle[2] - particleZBounds * (1/4), 5, 5, 5).col(255, 0, 0, 255);
         part.faceCamera = true;
         part.buildMatrix();
         part.applyTexture("all", [0, 0, 5, 5], particle[3]);
@@ -487,9 +501,9 @@ function sendTextToHTML(text, ID) {
 
 let g_points = [];
 let g_selectedColor = [1, 1, 1, 1];
-let g_globalYawAngle = -30;
-let g_globalPitchAngle = -30 + 180;
-let g_globalScale = 2;
+let g_globalYawAngle = -35 + 90;
+let g_globalPitchAngle = 20;
+let g_globalScale = 3;
 let g_startTime = performance.now()/1000.0;
 let g_seconds = performance.now()/1000.0-g_startTime;
 let g_speed = 3.7;
@@ -571,8 +585,8 @@ function move(event) {
     const deltaY = event.clientY - lastMouseY;
     dragX = deltaX * dragSensitivity;
     dragY = deltaY * dragSensitivity;
-    g_globalYawAngle -= dragX;
-    g_globalPitchAngle -= dragY;
+    g_globalYawAngle += dragX;
+    g_globalPitchAngle += dragY;
 
     lastMouseX = event.clientX;
     lastMouseY = event.clientY;
